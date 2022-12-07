@@ -243,6 +243,7 @@ export class Cache {
         const fileLines = fileContent.split('\n');
 
         // Lazily store date extracted from filename to avoid parsing more than needed
+        console.log(`getTasksFromFileContent() reading ${file.path}`);
         const dateFromFileName = new Lazy(() => DateFallback.fromPath(file.path));
 
         // We want to store section information with every task so
