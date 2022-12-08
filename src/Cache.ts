@@ -277,19 +277,7 @@ export class Cache {
                         fallbackDate: dateFromFileName.value,
                     });
                 } catch (e) {
-                    const msg = `Error reading task.
-Error: ${e}
-File: ${file.path}
-Line number: ${listItem.position.start.line}
-Task line: ${line}
-`;
-                    console.error(msg);
-                    if (e instanceof Error) {
-                        console.error(e.stack);
-                    }
-                    if (this.state === State.Initializing) {
-                        new Notice(msg, 10000);
-                    }
+                    this.reportTaskParsingErrorToUser(e, file, listItem, line);
                     continue;
                 }
 
@@ -301,6 +289,22 @@ Task line: ${line}
         }
 
         return tasks;
+    }
+
+    private reportTaskParsingErrorToUser(e: any, file: TFile, listItem: ListItemCache, line: string) {
+        const msg = `Error reading task.
+Error: ${e}
+File: ${file.path}
+Line number: ${listItem.position.start.line}
+Task line: ${line}
+`;
+        console.error(msg);
+        if (e instanceof Error) {
+            console.error(e.stack);
+        }
+        if (this.state === State.Initializing) {
+            new Notice(msg, 10000);
+        }
     }
 
     private static getSection(lineNumberTask: number, sections: SectionCache[] | undefined): SectionCache | null {
