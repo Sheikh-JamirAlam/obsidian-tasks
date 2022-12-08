@@ -292,11 +292,20 @@ export class Cache {
     }
 
     private reportTaskParsingErrorToUser(e: any, file: TFile, listItem: ListItemCache, line: string) {
-        const msg = `Error reading task.
+        const msg = `There was an error reading one of the tasks in this vault.
+The following task has been ignored, to prevent Tasks queries getting stuck with 'Loading Tasks ...'
 Error: ${e}
 File: ${file.path}
 Line number: ${listItem.position.start.line}
 Task line: ${line}
+
+Please report this message in https://github.com/obsidian-tasks-group/obsidian-tasks/issues/829
+to help us find and fix the underlying issue, either by getting a screenshot
+of the error popup, or by copying the text from the console, if on a desktop machine.
+
+The error will only be shown when Tasks is starting up, but if the error persists,
+it will be shown in the console every time this file is edited during the Obsidian
+session.
 `;
         console.error(msg);
         if (e instanceof Error) {
