@@ -1,4 +1,4 @@
-import { MetadataCache, TAbstractFile, TFile, Vault } from 'obsidian';
+import { MetadataCache, Notice, TAbstractFile, TFile, Vault } from 'obsidian';
 import type { CachedMetadata, EventRef } from 'obsidian';
 import type { HeadingCache, ListItemCache, SectionCache } from 'obsidian';
 import { Mutex } from 'async-mutex';
@@ -201,7 +201,7 @@ export class Cache {
         if (listItems !== undefined) {
             // Only read the file and process for tasks if there are list items.
             const fileContent = await this.vault.cachedRead(file);
-            newTasks = Cache.getTasksFromFileContent(fileContent, listItems, fileCache, file);
+            newTasks = this.getTasksFromFileContent(fileContent, listItems, fileCache, file);
         }
 
         // If there are no changes in any of the tasks, there's
@@ -233,7 +233,7 @@ export class Cache {
         this.notifySubscribers();
     }
 
-    private static getTasksFromFileContent(
+    private getTasksFromFileContent(
         fileContent: string,
         listItems: ListItemCache[],
         fileCache: CachedMetadata,
@@ -243,7 +243,7 @@ export class Cache {
         const fileLines = fileContent.split('\n');
 
         // Lazily store date extracted from filename to avoid parsing more than needed
-        console.log(`getTasksFromFileContent() reading ${file.path}`);
+        // console.debug(`getTasksFromFileContent() reading ${file.path}`);
         const dateFromFileName = new Lazy(() => DateFallback.fromPath(file.path));
 
         // We want to store section information with every task so
@@ -266,14 +266,32 @@ export class Cache {
                 }
 
                 const line = fileLines[listItem.position.start.line];
-                const task = Task.fromLine({
-                    line,
-                    path: file.path,
-                    sectionStart: currentSection.position.start.line,
-                    sectionIndex,
-                    precedingHeader: Cache.getPrecedingHeader(listItem.position.start.line, fileCache.headings),
-                    fallbackDate: dateFromFileName.value,
-                });
+                let task;
+                try {
+                    task = Task.fromLine({
+                        line,
+                        path: file.path,
+                        sectionStart: currentSection.position.start.line,
+                        sectionIndex,
+                        precedingHeader: Cache.getPrecedingHeader(listItem.position.start.line, fileCache.headings),
+                        fallbackDate: dateFromFileName.value,
+                    });
+                } catch (e) {
+                    const msg = `Error reading task.
+Error: ${e}
+File: ${file.path}
+Line number: ${listItem.position.start.line}
+Task line: ${line}
+`;
+                    console.error(msg);
+                    if (e instanceof Error) {
+                        console.error(e.stack);
+                    }
+                    if (this.state === State.Initializing) {
+                        new Notice(msg, 10000);
+                    }
+                    continue;
+                }
 
                 if (task !== null) {
                     sectionIndex++;
